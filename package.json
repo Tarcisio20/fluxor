@@ -1,0 +1,13 @@
+{
+  "name": "fluxor",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev -w web-client",
+    "dev:system": "npm run dev -w web-system",
+    "dev:api": "npm run dev -w api"
+  }
+}
