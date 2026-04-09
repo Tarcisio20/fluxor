@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CompanyStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  COURTESY
+  PAST_DUE
+  SUSPENDED
+  CANCELED
+  EXPIRED
+}
+
+model Company {
+  id           String         @id @default(uuid())
+  legalName    String
+  tradeName    String
+  cnpj         String         @unique
+  email        String         @unique
+  phone        String?
+  slug         String         @unique
+  subdomain    String?        @unique
+  logoUrl      String?
+  primaryColor String?
+  status       CompanyStatus  @default(TRIAL)
+
+  users         User[]
+  subscriptions Subscription[]
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@map("companies")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+
+  users       User[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  companyId    String
+  roleId       String
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  active       Boolean  @default(true)
+  lastLoginAt  DateTime?
+
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  role         Role     @relation(fields: [roleId], references: [id])
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([roleId])
+  @@map("users")
+}
+
+model Plan {
+  id                 String   @id @default(uuid())
+  name               String   @unique
+  description        String?
+  priceMonthly       Decimal  @db.Decimal(10, 2)
+  priceYearly        Decimal? @db.Decimal(10, 2)
+  maxUsers           Int
+  maxTables          Int
+  maxProducts        Int
+  maxMonthlyOrders   Int?
+  hasKitchenModule   Boolean  @default(false)
+  hasReports         Boolean  @default(false)
+  hasCashierModule   Boolean  @default(false)
+  hasWaiterCall      Boolean  @default(true)
+  hasCustomDomain    Boolean  @default(false)
+  trialDaysDefault   Int      @default(7)
+  active             Boolean  @default(true)
+
+  subscriptions      Subscription[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                    String             @id @default(uuid())
+  companyId             String
+  planId                String
+  status                SubscriptionStatus @default(TRIALING)
+  startedAt             DateTime           @default(now())
+  trialEndsAt           DateTime?
+  currentPeriodStartsAt DateTime?
+  currentPeriodEndsAt   DateTime?
+  canceledAt            DateTime?
+
+  company               Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan                  Plan               @relation(fields: [planId], references: [id])
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([companyId])
+  @@index([planId])
+  @@map("subscriptions")
+}
